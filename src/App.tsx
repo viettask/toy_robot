@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, Play, Trash2, FileText, Sparkles } from 'lucide-react';
+import { Bot, Play, Trash2, FileText, ChevronDown, ChevronUp, TestTube } from 'lucide-react';
 import './App.css';
 
 // Type definitions
@@ -25,23 +25,24 @@ type HistoryItem = {
   timestamp: number;
 };
 
-type ExampleKey = 'a' | 'b' | 'c' | 'tour';
+type ExampleKey = 'a' | 'b' | 'c';
 
 // Constants
 const DIRECTIONS: Direction[] = ['NORTH', 'EAST', 'SOUTH', 'WEST'];
 const TABLE_SIZE = 5;
 
 const App: React.FC = () => {
-  const [robot, setRobot] = useState<RobotState>({ 
-    x: null, 
-    y: null, 
-    facing: null, 
-    placed: false 
+  const [robot, setRobot] = useState<RobotState>({
+    x: null,
+    y: null,
+    facing: null,
+    placed: false
   });
   const [commands, setCommands] = useState<string>('');
   const [output, setOutput] = useState<string[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
+  const [showInstructions, setShowInstructions] = useState<boolean>(true);
 
   const isValidPosition = (x: number, y: number): boolean => {
     return x >= 0 && x < TABLE_SIZE && y >= 0 && y < TABLE_SIZE;
@@ -58,7 +59,7 @@ const App: React.FC = () => {
 
   const executeCommand = (cmd: string): void => {
     const trimmed = cmd.trim().toUpperCase();
-    
+
     if (trimmed.startsWith('PLACE')) {
       const match = trimmed.match(/PLACE\s+(\d+)\s*,\s*(\d+)\s*,\s*(NORTH|SOUTH|EAST|WEST)/);
       if (match) {
@@ -129,14 +130,14 @@ const App: React.FC = () => {
     setHistory([]);
     setRobot({ x: null, y: null, facing: null, placed: false });
     setIsAnimating(true);
-    
+
     const lines = commands.split('\n').filter(line => line.trim());
-    
+
     for (let i = 0; i < lines.length; i++) {
       await new Promise(resolve => setTimeout(resolve, 300));
       executeCommand(lines[i]);
     }
-    
+
     setIsAnimating(false);
   };
 
@@ -156,9 +157,22 @@ const App: React.FC = () => {
       a: 'PLACE 0,0,NORTH\nMOVE\nREPORT',
       b: 'PLACE 0,0,NORTH\nLEFT\nREPORT',
       c: 'PLACE 1,2,EAST\nMOVE\nMOVE\nLEFT\nMOVE\nREPORT',
-      tour: 'PLACE 0,0,NORTH\nMOVE\nMOVE\nMOVE\nMOVE\nRIGHT\nMOVE\nMOVE\nMOVE\nMOVE\nRIGHT\nMOVE\nMOVE\nMOVE\nMOVE\nRIGHT\nMOVE\nMOVE\nMOVE\nREPORT'
     };
-    setCommands(examples[example] || '');
+    const exampleCommands: string = examples[example] || '';
+  setCommands(exampleCommands);
+
+  // Execute commands directly without waiting for state
+  setTimeout(async (): Promise<void> => {
+    setOutput([]);
+    setHistory([]);
+    setRobot({ x: null, y: null, facing: null, placed: false });
+    
+    const lines: string[] = exampleCommands.split('\n').filter((line: string) => line.trim());
+    for (let i = 0; i < lines.length; i++) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
+      executeCommand(lines[i]);
+    }
+  }, 0);
   };
 
   const getRobotRotation = (): string => {
@@ -180,311 +194,338 @@ const App: React.FC = () => {
             <Bot className="header-icon pulse-animation" size={64} />
             <h1 className="title">Toy Robot Simulator</h1>
           </div>
-          <p className="subtitle">Control a robot on a 5×5 tabletop grid</p>
-          <div className="badge">
-            <Sparkles className="badge-icon" size={16} />
-            Challenge by Magentus
-          </div>
         </div>
 
-        <div className="main-grid">
-          {/* Left Panel - Table and Status */}
-          <div className="left-panel">
-            {/* Table Grid */}
-            <div className="card">
-              <div className="card-header">
-                <h2 className="card-title">Tabletop Grid</h2>
-                <div className="table-size-badge">
-                  <span>5 × 5 units</span>
+        {/* Instructions - COLLAPSIBLE */}
+        <div className="card instructions-card">
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
+            onClick={() => setShowInstructions(!showInstructions)}
+          >
+            <h2 className="card-title instructions-title" style={{ marginBottom: 0 }}>
+              📖 Instructions & Rules
+            </h2>
+            <button
+              className="btn btn-primary"
+              style={{
+                padding: '0.5rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              {showInstructions ? (
+                <>
+                  <ChevronUp size={20} />
+                  Hide
+                </>
+              ) : (
+                <>
+                  <ChevronDown size={20} />
+                  Show
+                </>
+              )}
+            </button>
+          </div>
+
+          {showInstructions && (
+            <div style={{ marginTop: '1.5rem' }}>
+              <div className="instructions-grid">
+                <div className="instruction-section">
+                  <h3 className="instruction-heading">Commands:</h3>
+                  <div className="box">
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <span className="box-name box-name-yellow">PLACE X,Y,F</span>
+                      <p className="box-desc">Place robot at coordinates (X,Y) facing direction F</p>
+                    </div>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <span className="box-name box-name-green">MOVE</span>
+                      <p className="box-desc">Move one unit forward in current direction</p>
+                    </div>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <span className="box-name box-name-black">LEFT</span>
+                      <p className="box-desc">Rotate 90° counter-clockwise</p>
+                    </div>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <span className="box-name box-name-orange">RIGHT</span>
+                      <p className="box-desc">Rotate 90° clockwise</p>
+                    </div>
+                    <div>
+                      <span className="box-name box-name-purple">REPORT</span>
+                      <p className="box-desc">Output current position and direction</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="instruction-section">
+                  <h3 className="instruction-heading">Rules & Constraints:</h3>
+                  <div className="box">
+                    <p className="box-desc">• Table is 5×5 units with coordinates (0-4) on each axis</p>
+                    <p className="box-desc">• Origin (0,0) is at the south-west (bottom-left) corner</p>
+                    <p className="box-desc">• First valid command must be PLACE</p>
+                    <p className="box-desc">• Robot cannot fall off the table - invalid moves are ignored</p>
+                    <p className="box-desc">• Valid directions: NORTH, SOUTH, EAST, WEST</p>
+                    <p className="box-desc">• Commands before valid PLACE are ignored</p>
+                    <p className="box-desc">• Additional PLACE commands can be used to reposition the robot</p>
+                  </div>
                 </div>
               </div>
-              
-              <div className="table-container">
-                <div className="table-wrapper">
-                  {/* Y-axis label */}
-                  <div className="axis-label-container">
-                    <div className="spacer"></div>
-                    <div className="axis-label">X-axis →</div>
-                  </div>
-                  
-                  <div className="grid-main">
-                    {/* Y-axis label - ADD THIS */}
-                    <div className="y-axis-label">Y-axis ↑</div>
-
-                    {/* Y-axis numbers */}
-                    <div className="y-axis-numbers">
-                      {[...Array(TABLE_SIZE)].map((_, y) => (
-                        <div key={y} className="y-axis-number">
-                          {y}
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Grid */}
-                    <div className="grid-content">
-                      {[...Array(TABLE_SIZE)].map((_, y) => (
-                        <div key={y} className="grid-row">
-                          {[...Array(TABLE_SIZE)].map((_, x) => {
-                            const isRobot = robot.placed && robot.x === x && robot.y === (TABLE_SIZE - 1 - y);
-                            return (
-                              <div
-                                key={x}
-                                className={`grid-cell ${isRobot ? 'grid-cell-robot' : ''}`}
-                              >
-                                {isRobot ? (
-                                  <div className={`robot-icon ${getRobotRotation()}`}>
-                                    <Bot size={32} />
-                                  </div>
-                                ) : (
-                                  <span className="cell-coordinates">{x},{TABLE_SIZE - 1 - y}</span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                      
-                      {/* X-axis numbers */}
-                      <div className="x-axis-numbers">
-                        {[...Array(TABLE_SIZE)].map((_, x) => (
-                          <div key={x} className="x-axis-number">
-                            {x}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Robot Status */}
-              {robot.placed && (
-                <div className="robot-status">
-                  <h3 className="robot-status-title">
-                    <Bot size={20} />
-                    Robot Status
-                  </h3>
-                  <div className="status-grid">
-                    <div className="status-item">
-                      <p className="status-label">X Position</p>
-                      <p className="status-value status-value-blue">{robot.x}</p>
-                    </div>
-                    <div className="status-item">
-                      <p className="status-label">Y Position</p>
-                      <p className="status-value status-value-blue">{robot.y}</p>
-                    </div>
-                    <div className="status-item">
-                      <p className="status-label">Facing</p>
-                      <p className="status-value status-value-purple">{robot.facing}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {!robot.placed && (
-                <div className="warning-box">
-                  <p>⚠️ Robot not placed. Use PLACE command first.</p>
-                </div>
-              )}
             </div>
+          )}
+        </div>
 
-            {/* Quick Controls */}
-            <div className="card">
-              <h2 className="card-title">
-                <Play size={24} />
-                Quick Controls
-              </h2>
-              <div className="button-grid">
-                <button
-                  onClick={() => handleQuickCommand('PLACE 2,2,NORTH')}
-                  className="btn btn-primary btn-full-width"
-                >
-                  <Bot size={20} />
-                  PLACE at Center (2,2) NORTH
-                </button>
-                
-                <button
-                  onClick={() => handleQuickCommand('MOVE')}
-                  className="btn btn-green"
-                  disabled={!robot.placed}
-                >
-                  ⬆️ MOVE
-                </button>
-                
-                <button
-                  onClick={() => handleQuickCommand('REPORT')}
-                  className="btn btn-purple"
-                  disabled={!robot.placed}
-                >
-                  📍 REPORT
-                </button>
-                
-                <button
-                  onClick={() => handleQuickCommand('LEFT')}
-                  className="btn btn-yellow"
-                  disabled={!robot.placed}
-                >
-                  ↶ LEFT
-                </button>
-                
-                <button
-                  onClick={() => handleQuickCommand('RIGHT')}
-                  className="btn btn-orange"
-                  disabled={!robot.placed}
-                >
-                  ↷ RIGHT
-                </button>
+        {/* Grid and Robot Status */}
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">🤖 5×5 Grid Table</h2>
+          </div>
+
+          <div className="table-container">
+            <div className="table-wrapper">
+              {/* NORTH label */}
+              <div className="direction-north">NORTH ↑</div>
+
+              {/* X-axis label */}
+              <div className="axis-label-container">
+                <div className="spacer"></div>
+                <div className="axis-label">X-axis →</div>
               </div>
+
+              <div className="grid-main">
+                {/* WEST label */}
+                <div className="direction-west">← WEST</div>
+
+                {/* Y-axis label */}
+                <div className="y-axis-label">Y-axis ↑</div>
+
+                {/* Y-axis numbers */}
+                <div className="y-axis-numbers">
+                  {[...Array(TABLE_SIZE)].map((_, y) => (
+                    <div key={y} className="y-axis-number">
+                      {y}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Grid */}
+                <div className="grid-content">
+                  {[...Array(TABLE_SIZE)].map((_, y) => (
+                    <div key={y} className="grid-row">
+                      {[...Array(TABLE_SIZE)].map((_, x) => {
+                        const isRobot = robot.placed && robot.x === x && robot.y === (TABLE_SIZE - 1 - y);
+                        return (
+                          <div
+                            key={x}
+                            className={`grid-cell ${isRobot ? 'grid-cell-robot' : ''}`}
+                          >
+                            {isRobot ? (
+                              <div className={`robot-icon ${getRobotRotation()}`}>
+                                <Bot size={32} />
+                              </div>
+                            ) : (
+                              <span className="cell-coordinates">{x},{TABLE_SIZE - 1 - y}</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+
+                  {/* X-axis numbers */}
+                  <div className="x-axis-numbers">
+                    {[...Array(TABLE_SIZE)].map((_, x) => (
+                      <div key={x} className="x-axis-number">
+                        {x}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* EAST label */}
+                <div className="direction-east">EAST →</div>
+              </div>
+
+              {/* SOUTH label */}
+              <div className="direction-south">↓ SOUTH</div>
             </div>
           </div>
 
-          {/* Right Panel - Commands and Output */}
-          <div className="right-panel">
-            {/* Command Input */}
-            <div className="card">
-              <h2 className="card-title">
-                <FileText size={24} />
-                Command Input
-              </h2>
-              <textarea
-                value={commands}
-                onChange={(e) => setCommands(e.target.value)}
-                placeholder="Enter commands (one per line)
-
-Example:
-PLACE 0,0,NORTH
-MOVE
-REPORT"
-                className="command-textarea"
-              />
-              
-              {/* Action Buttons */}
-              <div className="action-buttons">
-                <button
-                  onClick={handleExecuteCommands}
-                  disabled={isAnimating}
-                  className="btn btn-execute"
-                >
-                  <Play size={20} />
-                  {isAnimating ? 'Executing...' : 'Execute'}
-                </button>
-                <button
-                  onClick={handleReset}
-                  className="btn btn-red"
-                >
-                  <Trash2 size={20} />
-                  Reset
-                </button>
+          {/* Robot Status */}
+          {robot.placed ? (
+            <div className="robot-status">
+              <h3 className="robot-status-title">
+                <Bot size={20} />
+                Robot Status
+              </h3>
+              <div className="status-grid">
+                <div className="status-item">
+                  <p className="status-label">X Position</p>
+                  <p className="status-value status-value-blue">{robot.x}</p>
+                </div>
+                <div className="status-item">
+                  <p className="status-label">Y Position</p>
+                  <p className="status-value status-value-blue">{robot.y}</p>
+                </div>
+                <div className="status-item">
+                  <p className="status-label">Facing</p>
+                  <p className="status-value status-value-purple">{robot.facing}</p>
+                </div>
               </div>
-              
-              {/* Example Buttons */}
-              <div className="example-section">
-                <p className="example-label">Load Examples:</p>
-                <div className="example-grid">
-                  <button onClick={() => loadExample('a')} className="example-btn">
+            </div>
+          ) : (
+            <div className="warning-box">
+              <p>⚠️ Robot not placed. Use PLACE command first.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Commands Section */}
+        <div className="card instructions-card">
+          <h2 className="card-title instructions-title">⌨️ Commands</h2>
+
+          <div className="main-grid">
+            {/* Left Panel - Quick Controls */}
+            <div className="left-panel">
+              <div className="card">
+                <h2 className="card-title">
+                  <Play size={24} />
+                  Quick Controls
+                </h2>
+                <div className="button-grid">
+                  <button
+                    onClick={() => handleQuickCommand('PLACE 2,2,NORTH')}
+                    className="btn btn-primary btn-full-width"
+                  >
+                    <Bot size={20} />
+                    PLACE at Center
+                  </button>
+
+                  <button
+                    onClick={() => handleQuickCommand('MOVE')}
+                    className="btn btn-green"
+                    disabled={!robot.placed}
+                  >
+                    ⬆️ MOVE
+                  </button>
+
+                  <button
+                    onClick={() => handleQuickCommand('REPORT')}
+                    className="btn btn-purple"
+                    disabled={!robot.placed}
+                  >
+                    📍 REPORT
+                  </button>
+
+                  <button
+                    onClick={() => handleQuickCommand('LEFT')}
+                    className="btn btn-grey"
+                    disabled={!robot.placed}
+                  >
+                    ↶ LEFT
+                  </button>
+
+                  <button
+                    onClick={() => handleQuickCommand('RIGHT')}
+                    className="btn btn-orange"
+                    disabled={!robot.placed}
+                  >
+                    ↷ RIGHT
+                  </button>
+                </div>
+              </div>
+
+              {/* Output */}
+              {output.length > 0 && (
+                <div className="card">
+                  <h2 className="card-title">📊 Output (REPORT)</h2>
+                  <div className="output-box">
+                    {output.map((line, i) => (
+                      <div key={i} className="output-item">
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Execution History */}
+              {history.length > 0 && (
+                <div className="card">
+                  <h2 className="card-title">📜 Execution History</h2>
+                  <div className="history-box">
+                    {history.map((item, i) => (
+                      <div key={i} className={`history-item history-${item.type}`}>
+                        <span className="history-number">{i + 1}.</span> {item.message}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Panel - Command Input */}
+            <div className="middle-panel">
+              <div className="card">
+                <h2 className="card-title">
+                  <FileText size={24} />
+                  Manual Input
+                </h2>
+                <textarea
+                  value={commands}
+                  onChange={(e) => setCommands(e.target.value)}
+                  placeholder="Enter commands (one per line)&#10;&#10;Example:&#10;PLACE 0,0,NORTH&#10;MOVE&#10;REPORT"
+                  className="command-textarea"
+                />
+
+                {/* Action Buttons */}
+                <div className="action-buttons">
+                  <button
+                    onClick={handleExecuteCommands}
+                    disabled={isAnimating}
+                    className="btn btn-execute"
+                  >
+                    <Play size={20} />
+                    {isAnimating ? 'Executing...' : 'Execute'}
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    className="btn btn-red"
+                  >
+                    <Trash2 size={20} />
+                    Reset
+                  </button>
+                </div>
+
+
+              </div>
+            </div>
+
+            <div className="right-panel">
+              <div className="card">
+                <h2 className="card-title">
+                  <TestTube size={24} />
+                  Examples
+                </h2>
+                {/* Example Buttons */}
+                <div className="button-grid">
+                  <button onClick={() => loadExample('a')} className="btn example-btn">
                     Example A
                   </button>
-                  <button onClick={() => loadExample('b')} className="example-btn">
+                  <button onClick={() => loadExample('b')} className="btn example-btn">
                     Example B
                   </button>
-                  <button onClick={() => loadExample('c')} className="example-btn">
+                  <button onClick={() => loadExample('c')} className="btn example-btn">
                     Example C
                   </button>
-                  <button onClick={() => loadExample('tour')} className="example-btn">
-                    Perimeter Tour
-                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Output */}
-            {output.length > 0 && (
-              <div className="card">
-                <h2 className="card-title">📊 Output (REPORT)</h2>
-                <div className="output-box">
-                  {output.map((line, i) => (
-                    <div key={i} className="output-item">
-                      {line}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Execution History */}
-            {history.length > 0 && (
-              <div className="card">
-                <h2 className="card-title">📜 Execution History</h2>
-                <div className="history-box">
-                  {history.map((item, i) => (
-                    <div key={i} className={`history-item history-${item.type}`}>
-                      <span className="history-number">{i + 1}.</span> {item.message}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Instructions */}
-        <div className="card instructions-card">
-          <h2 className="card-title instructions-title">📖 Instructions & Rules</h2>
-          <div className="instructions-grid">
-            <div className="instruction-section">
-              <h3 className="instruction-heading">Available Commands:</h3>
-              <div>
-                <div className="command-box">
-                  <span className="command-name command-name-blue">PLACE X,Y,F</span>
-                  <p className="command-desc">Place robot at coordinates (X,Y) facing direction F</p>
-                </div>
-                <div className="command-box">
-                  <span className="command-name command-name-green">MOVE</span>
-                  <p className="command-desc">Move one unit forward in current direction</p>
-                </div>
-                <div className="command-box">
-                  <span className="command-name command-name-yellow">LEFT</span>
-                  <p className="command-desc">Rotate 90° counter-clockwise</p>
-                </div>
-                <div className="command-box">
-                  <span className="command-name command-name-orange">RIGHT</span>
-                  <p className="command-desc">Rotate 90° clockwise</p>
-                </div>
-                <div className="command-box">
-                  <span className="command-name command-name-purple">REPORT</span>
-                  <p className="command-desc">Output current position and direction</p>
-                </div>
-              </div>
-            </div>
-            <div className="instruction-section">
-              <h3 className="instruction-heading">Rules & Constraints:</h3>
-              <ul className="rules-list">
-                <li className="rule-item">
-                  <span className="rule-bullet">•</span>
-                  <span>Table is 5×5 units with coordinates (0-4) on each axis</span>
-                </li>
-                <li className="rule-item">
-                  <span className="rule-bullet">•</span>
-                  <span>Origin (0,0) is at the south-west (bottom-left) corner</span>
-                </li>
-                <li className="rule-item">
-                  <span className="rule-bullet">•</span>
-                  <span>First valid command must be PLACE</span>
-                </li>
-                <li className="rule-item">
-                  <span className="rule-bullet">•</span>
-                  <span>Robot cannot fall off the table - invalid moves are ignored</span>
-                </li>
-                <li className="rule-item">
-                  <span className="rule-bullet">•</span>
-                  <span>Valid directions: NORTH, SOUTH, EAST, WEST</span>
-                </li>
-                <li className="rule-item">
-                  <span className="rule-bullet">•</span>
-                  <span>Commands before valid PLACE are ignored</span>
-                </li>
-              </ul>
-            </div>
           </div>
         </div>
       </div>
@@ -492,6 +533,4 @@ REPORT"
   );
 };
 
-
-
-export default App
+export default App;
