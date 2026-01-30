@@ -90,7 +90,7 @@ To run this project locally:
 
 2. Navigate into the project directory:
    ```bash
-   cd IFQ666_react_web_assignment1
+   cd toy_robot
    ```
 
 3. Install dependencies:
